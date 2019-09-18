@@ -1,8 +1,10 @@
 library(psych)
 library(readxl)
 library(igraph)
+#Load in the packages we'll need 
 
-subs = c(1001, 1002, 1005, 1006, 1007, 1008, 1031, 1032, 1034, 1036,   ##input subject IDs
+
+subs = c(1001, 1002, 1005, 1006, 1007, 1008, 1031, 1032, 1034, 1036,   ##subject IDs
          1072, 1077, 1078, 1081, 1089, 1090, 1091, 1098, 1105, 1106,
          1111, 1115, 1116, 1117, 1118, 1119, 1125, 1126, 1127, 1128,
          1132, 1133, 1134, 1136, 1142, 1143, 1145, 1146, 1147, 1152,
@@ -10,18 +12,19 @@ subs = c(1001, 1002, 1005, 1006, 1007, 1008, 1031, 1032, 1034, 1036,   ##input s
          1208, 1218, 1226, 1227, 1228, 1233, 1237, 1239, 1240, 1244,
          1245, 1246, 1248, 1249, 1250, 1252, 1253, 1256, 1262, 1263)
 
-#Create & name Far/Look matrices for all networks
+#Create & name Far/Look matrices for all networks -- Far is regulate, Look is emotional baseline
+#Name the columns in the matrices according to the networks' ROIs
 
-ERFarMat = as.data.frame(matrix(NaN, 70, 32))  
-names(ERFarMat) <- c("ldlPFC_A", "ldlPFC_B", "ldlPFC_C", "ldlPFC_D", "ldlPFC_E", 
+CRNFarMat = as.data.frame(matrix(NaN, 70, 32))  
+names(CRNFarMat) <- c("ldlPFC_A", "ldlPFC_B", "ldlPFC_C", "ldlPFC_D", "ldlPFC_E", 
                      "ldlPFC_F", "ldlPFC_G", "rdlPFC_A", "rdlPFC_B", "rdlPFC_C",
                      "rdlPFC_D", "rvlPFC_A", "rvlPFC_B", "rvlPFC_C", "rdmPFC_A", 
                      "rdmPFC_B", "rdmPFC_C", "rdmPFC_D", "rdmPFC_E", "rdmPFC_F", 
                      "rdmPFC_G", "lMTG_A", "lMTG_B", "lSPL_A", "lSPL_B", 
                      "lSPL_C", "lSPL_D", "lSPL_E", "rSPL_A", "rSPL_B", "rSPL_C", 
                      "rSPL_D")
-ERLookMat = as.data.frame(matrix(NaN, 70, 32))
-names(ERLookMat) <- c("ldlPFC_A", "ldlPFC_B", "ldlPFC_C", "ldlPFC_D", "ldlPFC_E", 
+CRNLookMat = as.data.frame(matrix(NaN, 70, 32))
+names(CRNLookMat) <- c("ldlPFC_A", "ldlPFC_B", "ldlPFC_C", "ldlPFC_D", "ldlPFC_E", 
                       "ldlPFC_F", "ldlPFC_G", "rdlPFC_A", "rdlPFC_B", "rdlPFC_C",
                       "rdlPFC_D", "rvlPFC_A", "rvlPFC_B", "rvlPFC_C", "rdmPFC_A", 
                       "rdmPFC_B", "rdmPFC_C", "rdmPFC_D", "rdmPFC_E", "rdmPFC_F", 
@@ -145,10 +148,10 @@ names(VANLookMat) <- c('lLOC_A_sphere', 'lLOC_B_sphere', 'lLOC_C_sphere', 'lLOC_
                       'rOP_A_sphere',
                       'lIFG_A_sphere')
 
-##Create vectors to hold output
-outSimER = c(rep(NaN, 70))
-modDiffER = c(rep(NaN, 70))
-commDiffER = c(rep(NaN, 70))
+##Create vectors to hold output for each subject. Three per network (1 for each metric of network activity)
+outSimCRN = c(rep(NaN, 70))
+modDiffCRN = c(rep(NaN, 70))
+commDiffCRN = c(rep(NaN, 70))
 
 outSimDMN = c(rep(NaN, 70))
 modDiffDMN = c(rep(NaN, 70))
@@ -171,14 +174,14 @@ modDiffVAN = c(rep(NaN, 70))
 commDiffVAN = c(rep(NaN, 70))
 
 
-##While looping over subjects, go through each network and calculate differences in connectome similarity, modularity, and community number. 
+##While looping over subjects, go through each network and calculate differences in connectome similarity/differentiation, modularity, and community number. 
 
 
 
 for (i in 1:length(subs)) {
-  #Emotion Regulation Network (defined via using peaks reported in Buhle, Silvers 2014 meta-analysis)
-  farER <- read.table(sprintf("C:/Users/jguas/Desktop/McReapp/lss_trials/%s_expanded_farNeg_lss_ts.txt", subs[i]))
-  names(farER) <- c("ldlPFC_A", "ldlPFC_B", "ldlPFC_C", "ldlPFC_D", "ldlPFC_E", 
+  #Cognitive Reappraisal Network (defined via using peaks reported in Buhle, Silvers 2014 meta-analysis)
+  farCRN <- read.table(sprintf("C:/Users/jguas/Desktop/McReapp/lss_trials/%s_expanded_farNeg_lss_ts.txt", subs[i]))
+  names(farCRN) <- c("ldlPFC_A", "ldlPFC_B", "ldlPFC_C", "ldlPFC_D", "ldlPFC_E", 
                   "ldlPFC_F", "ldlPFC_G", "rdlPFC_A", "rdlPFC_B", "rdlPFC_C",
                   "rdlPFC_D", "rvlPFC_A", "rvlPFC_B", "rvlPFC_C", "rdmPFC_A", 
                   "rdmPFC_B", "rdmPFC_C", "rdmPFC_D", "rdmPFC_E", "rdmPFC_F", 
@@ -186,34 +189,34 @@ for (i in 1:length(subs)) {
                   "lSPL_C", "lSPL_D", "lSPL_E", "rSPL_A", "rSPL_B", "rSPL_C", 
                   "rSPL_D")
   
-  lookER <- read.table(sprintf("C:/Users/jguas/Desktop/McReapp/lss_trials/%s_expanded_lookNeg_lss_ts.txt", subs[i]))
-  names(lookER) <- c("ldlPFC_A", "ldlPFC_B", "ldlPFC_C", "ldlPFC_D", "ldlPFC_E", 
+  lookCRN <- read.table(sprintf("C:/Users/jguas/Desktop/McReapp/lss_trials/%s_expanded_lookNeg_lss_ts.txt", subs[i]))
+  names(lookCRN) <- c("ldlPFC_A", "ldlPFC_B", "ldlPFC_C", "ldlPFC_D", "ldlPFC_E", 
                    "ldlPFC_F", "ldlPFC_G", "rdlPFC_A", "rdlPFC_B", "rdlPFC_C",
                    "rdlPFC_D", "rvlPFC_A", "rvlPFC_B", "rvlPFC_C", "rdmPFC_A", 
                    "rdmPFC_B", "rdmPFC_C", "rdmPFC_D", "rdmPFC_E", "rdmPFC_F", 
                    "rdmPFC_G", "lMTG_A", "lMTG_B", "lSPL_A", "lSPL_B", 
                    "lSPL_C", "lSPL_D", "lSPL_E", "rSPL_A", "rSPL_B", "rSPL_C", 
                    "rSPL_D")
-  ##First, the connectivity RSA
+  ##First, the network similarity/differentiation a la RSA
   
   
   #Create similarity matrices for each task state (Far, Look)
-  farSimER = corr.test(farER, method = "spearman")[[1]] 
-  lookSimER = corr.test(lookER, method = "spearman")[[1]]
+  farSimCRN = corr.test(farCRN, method = "spearman")[[1]] 
+  lookSimCRN = corr.test(lookCRN, method = "spearman")[[1]]
   
   #Lop off redundant parts of said matrices, and vectorize them
-  farSimVecER = farSimER[lower.tri(farSimER)]
-  lookSimVecER = lookSimER[lower.tri(lookSimER)]
+  farSimVecCRN = farSimCRN[lower.tri(farSimCRN)]
+  lookSimVecCRN = lookSimCRN[lower.tri(lookSimCRN)]
   
   #Variance stabilization via Fisher Z transform
-  farSimVecZER = fisherz(farSimVecER)
-  lookSimVecZER = fisherz(lookSimVecER)
+  farSimVecZCRN = fisherz(farSimVecCRN)
+  lookSimVecZCRN = fisherz(lookSimVecCRN)
   
-  #correlate similarity vectors a la spearman
-  connectSimER = cor(farSimVecZER, lookSimVecZER, method="spearman")
+  #correlate similarity vectors a la spearman (doesn't assume linear dependency)
+  connectSimCRN = cor(farSimVecZCRN, lookSimVecZCRN, method="spearman")
   
   #Assign value of correlation to output vector created outside the loop
-  outSimER[i] = connectSimER
+  outSimCRN[i] = connectSimCRN
   
   
   ##Now for modularity & community; start with Far and then do Look. Steps for each task state follow.
@@ -224,22 +227,22 @@ for (i in 1:length(subs)) {
   #Calculate modularity (using walk trap algorithm)
   #Calculate number of communities (using walk trap algorithm)
   
-  farSimZER = fisherz(farSimER)
-  farAdjmER = farSimZER; farAdjmER[ farSimZER == Inf] = 0; farAdjmER[ farSimZER < .5000 ] = 0
-  farGraphER = graph_from_adjacency_matrix(farAdjmER, mode = "undirected", weighted=TRUE)
-  farModER = modularity(cluster_walktrap(farGraphER))
-  farCommER = length(cluster_walktrap(farGraphER))
+  farSimZCRN = fisherz(farSimCRN)
+  farAdjmCRN = farSimZCRN; farAdjmCRN[ farSimZCRN == Inf] = 0; farAdjmCRN[ farSimZCRN < .5000 ] = 0
+  farGraphCRN = graph_from_adjacency_matrix(farAdjmCRN, mode = "undirected", weighted=TRUE)
+  farModCRN = modularity(cluster_walktrap(farGraphCRN))
+  farCommCRN = length(cluster_walktrap(farGraphCRN))
   
-  lookSimZER = fisherz(lookSimER)
-  lookAdjmER = lookSimZER; lookAdjmER[ lookSimZER == Inf] = 0; lookAdjmER[ lookSimZER < .5000 ] = 0
-  lookGraphER = graph_from_adjacency_matrix(lookAdjmER, mode = "undirected", weighted=TRUE)
-  lookModER = modularity(cluster_walktrap(lookGraphER))
-  lookCommER = length(cluster_walktrap(lookGraphER))
+  lookSimZCRN = fisherz(lookSimCRN)
+  lookAdjmCRN = lookSimZCRN; lookAdjmCRN[ lookSimZCRN == Inf] = 0; lookAdjmCRN[ lookSimZCRN < .5000 ] = 0
+  lookGraphCRN = graph_from_adjacency_matrix(lookAdjmCRN, mode = "undirected", weighted=TRUE)
+  lookModCRN = modularity(cluster_walktrap(lookGraphCRN))
+  lookCommCRN = length(cluster_walktrap(lookGraphCRN))
   
   
   #Take differences between task states and assign to output
-  modDiffER[i] = farModER - lookModER
-  commDiffER[i] = farCommER - lookCommER
+  modDiffCRN[i] = farModCRN - lookModCRN
+  commDiffCRN[i] = farCommCRN - lookCommCRN
   
   #Default Mode Network (defined using forward inference maps on NeuroSynth)
   farDMN <- read.table(sprintf("C:/Users/jguas/Desktop/McReapp/lss_trials/DMN/%s_expanded_farNeg_lss_DMN_ts.txt", subs[i]))
@@ -512,13 +515,13 @@ for (i in 1:length(subs)) {
   commDiffVAN[i] = farCommVAN - lookCommVAN
 }
 
-#Read in age & capacity scores, then winsorize outliers on the neuro data
-behavDat = read_excel("C:/Users/jguas/Desktop/McReapp/behavData.xlsx")
-#hist(outSimER)
-#order(outSimER)
-outSimER[54] = outSimER[14]
-#hist(modDiffER)
-#hist(commDiffER)
+#Read in age & capacity scores, visualize network metrics and winsorize outliers as needed; 
+behavDat = read_excel("behavData.xlsx")
+hist(outSimCRN)
+order(outSimCRN)
+outSimCRN[54] = outSimCRN[14] #outlier present
+#hist(modDiffCRN)
+#hist(commDiffCRN)
 #hist(outSimDMN)
 #hist(modDiffDMN)
 #hist(commDiffDMN)
@@ -527,60 +530,49 @@ outSimER[54] = outSimER[14]
 #hist(commDiffFPN)
 #hist(outSimSaN)
 #hist(modDiffSaN)
-#hist(commDiffSaN)
-#order(commDiffSaN)
-commDiffSaN[48] = commDiffSaN[18]
+hist(commDiffSaN)
+order(commDiffSaN)
+commDiffSaN[48] = commDiffSaN[18] #outlier present
 #hist(outSimDAN)
 #hist(modDiffDAN)
-#hist(commDiffDAN)
-commDiffDAN[31] = commDiffDAN[54]
-#hist(outSimVAN)
-#order(outSimVAN)
-outSimVAN[54] = outSimVAN[55]
+hist(commDiffDAN)
+order(commDiffDAN)
+commDiffDAN[31] = commDiffDAN[54] #outlier present
+hist(outSimVAN)
+order(outSimVAN)
+outSimVAN[54] = outSimVAN[55] #outlier present
 #hist(modDiffVAN)
 #hist(commDiffVAN)
-#behavDat$outSimER
 
-##add brain data to age & capacity scores
-behavDat = cbind(behavDat, outSimER, modDiffER, commDiffER, outSimDMN, modDiffDMN, commDiffDMN,
-                 outSimFPN, modDiffFPN, commDiffFPN, outSimSaN, modDiffSaN, commDiffSaN,
-                 outSimDAN, modDiffDAN, commDiffDAN, outSimVAN, modDiffVAN, commDiffVAN)
-
-##Create df with only brain dadta
-netDat = behavDat[-(1:4)]
-#netDatT = t(netDat)
 
 library(ape)
 library(dendextend)
+#packages for cophenetic correlations and plotting dendrograms
 
-##Dendrogram!!
-nd <- as.dist((1-cor(scale(netDat)))/2)
-plot(hclust(nd))
 
-##Dendrogram with only RSA scores
-netDatSimOnly = cbind(outSimER, outSimDMN, outSimFPN, outSimSaN, outSimDAN, outSimVAN)
+##Dendrogram with only similarity/differentiation
+netDatSimOnly = cbind(outSimCRN, outSimDMN, outSimFPN, outSimSaN, outSimDAN, outSimVAN) #take only the metrics we need
 colnames(netDatSimOnly) = c("CRN", "DMN", "FPN", "SaN", "DAN", "VAN")
-ndso <- as.dist((1-cor(scale(netDatSimOnly)))/2)
-ndso = hclust(ndso)
-op = par(bg = "#E8DDCB")
-plot(as.phylo(ndso), type = "unrooted", tip.color = c("blue", "darkgreen", "red", "purple", "orange", "black"))
+ndso <- as.dist((1-cor(scale(netDatSimOnly)))/2) #save as a distance matrix
+ndso = hclust(ndso) #submit to agglomerative clustering
+op = par(bg = "#E8DDCB") #color scheme
+plot(as.phylo(ndso), type = "unrooted", tip.color = c("blue", "darkgreen", "red", "purple", "orange", "black")) #visualize dendrogram
 ind = c(1:70)
 ndso_boot = c(rep(NaN, 10000))
 set.seed(300)
-for (i in 1:10000) {
+for (i in 1:10000) { #bootstrap participants, create dendrogram per bootstrapped sample, compared with dendrogram from our sample using cophenetic cor
   samp = sample(ind, size = 70, replace=TRUE)
   dthisi = netDatSimOnly[samp,]
   clustthisi = hclust(as.dist((1-cor(scale(dthisi)))/2))
   ndso_boot[i] = cor_cophenetic(as.dendrogram(ndso), as.dendrogram(clustthisi))
 }
-mean(ndso_boot)
-quantile(ndso_boot, c(.025, .975))
-hist(ndso_boot)
-#plot(hclust(ndso))   obsolete can delete soon
+mean(ndso_boot) #mean of bootstrapped distribution
+quantile(ndso_boot, c(.025, .975)) #95% Cis of bootstrapped distribution
+hist(ndso_boot) #visualize bootstrapped distribution
 
 
 ##Dendrogram with only community diff scores
-netDatCommOnly = cbind(commDiffER, commDiffDMN, commDiffFPN, commDiffSaN, commDiffDAN, commDiffVAN)
+netDatCommOnly = cbind(commDiffCRN, commDiffDMN, commDiffFPN, commDiffSaN, commDiffDAN, commDiffVAN)
 colnames(netDatCommOnly) = c("CRN", "DMN", "FPN", "SaN", "DAN", "VAN")
 ndco <- as.dist((1-cor(scale(netDatCommOnly)))/2)
 ndco = hclust(ndco)
@@ -599,8 +591,9 @@ mean(ndco_boot)
 quantile(ndco_boot, c(.025, .975))
 hist(ndco_boot)
 
+
 ##Dendrogram with only modularity diff scores
-netDatModOnly = cbind(modDiffER, modDiffDMN, modDiffFPN, modDiffSaN, modDiffDAN, modDiffVAN)
+netDatModOnly = cbind(modDiffCRN, modDiffDMN, modDiffFPN, modDiffSaN, modDiffDAN, modDiffVAN)
 colnames(netDatModOnly) = c("CRN", "DMN", "FPN", "SaN", "DAN", "VAN")
 ndmo <- as.dist((1-cor(scale(netDatModOnly)))/2)
 ndmo = hclust(ndmo)
@@ -619,14 +612,14 @@ mean(ndmo_boot)
 quantile(ndmo_boot, c(.025, .975))
 hist(ndmo_boot)
 
+
 ##Compare the dendrograms
 
-
-cor_cophenetic(as.dendrogram(ndso), as.dendrogram(ndco))
+cor_cophenetic(as.dendrogram(ndso), as.dendrogram(ndco)) #get cophenetic cor between dendrograms
 ind = c(1:70)
 sc_boot = c(rep(NaN, 10000))
 set.seed(300)
-for (i in 1:10000) {
+for (i in 1:10000) { #bootstrap dendrograms and compare on each iteration; aggregate cophenetic corrs and take CI
   samp = sample(ind, size = 70, replace=TRUE)
   dsthisi = netDatSimOnly[samp,]; dcthisi = netDatCommOnly[samp,]
   cluststhisi = hclust(as.dist((1-cor(scale(dsthisi)))/2)); clustcthisi = hclust(as.dist((1-cor(scale(dcthisi)))/2))
@@ -662,23 +655,22 @@ quantile(cm_boot, c(.025, .975))
 hist(cm_boot)
 
 
-ERN = rowMeans(scale(netDat[,c(1:3)]))
-DMN = rowMeans(scale(netDat[,c(4:6)]))
-FPN = rowMeans(scale(netDat[,c(7:9)]))
-SaN = rowMeans(scale(netDat[,c(10:12)]))
-DAN = rowMeans(scale(netDat[,c(13:15)]))
-VAN = rowMeans(scale(netDat[,c(16:18)]))
-netMat = cbind(ERN, DMN, FPN, SaN, DAN, VAN)
-nda <- as.dist((1-cor(scale(netMat)))/2)
-plot(hclust(nda))
+
+##add brain data to age & capacity scores
+behavDat = cbind(behavDat, outSimCRN, modDiffCRN, commDiffCRN, outSimDMN, modDiffDMN, commDiffDMN,
+                 outSimFPN, modDiffFPN, commDiffFPN, outSimSaN, modDiffSaN, commDiffSaN,
+                 outSimDAN, modDiffDAN, commDiffDAN, outSimVAN, modDiffVAN, commDiffVAN)
+
+##Create df with only brain data
+netDat = behavDat[-(1:4)]
+
 ##Create helper function to normalize the data
-####Normalize data function####
 normalize <- function(x) {
   num <- x - min(x)
   denom <- max(x) - min(x)
   return(num/denom)
 }
-normDat <- normalize(behavDat[-1])
+normDat <- normalize(behavDat[-1]) #remove ID
 
 ##Correlations with age and capacity
 ERN_corr = corr.test(normDat[c(1,2,4,5,6)], method = "spearman", alpha=.10)
@@ -698,214 +690,79 @@ set.seed(1234)
 agelab = ifelse(behavDat$cAge < 0, "child", "teen")
 caplab = ifelse(behavDat$Capacity < 20, "low_cap", "high_cap") 
 
-
-
-#samps <- matrix(sample(2, 70000, replace=TRUE, prob=c(0.67, 0.33)), 1000, 70)
-
-#ind <- sample(2, nrow(normDat), replace=TRUE, prob=c(0.67, 0.33))
-#ind <- samps[i,]
-  
-#normDat.Train <- normDat[ind==1,]
-#normDat.Test <- normDat[ind==2,]
-#normDat.TrainLabels.Age <- agelab[ind==1]
-#normDat.TestLabels.Age <- agelab[ind==2]
-#normDat.TrainLabels.Cap <- caplab[ind==1]
-#normDat.TestLabels.Cap <- caplab[ind==2]
-
-##Model building time!! Uses leave-one-out cross validation
+##Model building. Using leave-one-out cross validation
 
 ##Model orders
 #Predicting age, K = 5, using all brain data
 #Predicting capacity, K = 5, using all brain data
-#Predicting age, K = 5, using just similarity data
-#Predicting capacity, K = 5, using just similarity data
 
 pred_age_all_5 = knn.cv(normDat[-(1:3)], agelab, k = 5, prob=TRUE)
 pred_cap_all_5 = knn.cv(normDat[-(1:3)], caplab, k = 5, prob=TRUE)
-pred_age_sim_5 = knn.cv(normDat[c(4, 7, 10, 13, 16, 19)], agelab, k = 5, prob=TRUE)
-pred_cap_sim_5 = knn.cv(normDat[c(4, 7, 10, 13, 16, 19)], caplab, k = 5, prob=TRUE)
+
 
 #Predicting age, K = 3, using all brain data
 #Predicting capacity, K = 3, using all brain data
-#Predicting age, K = 3, using just similarity data
-#Predicting capacity, K = 3, using just similarity data
+
 
 pred_age_all_3 = knn.cv(normDat[-(1:3)], agelab, k = 3, prob=TRUE)
 pred_cap_all_3 = knn.cv(normDat[-(1:3)], caplab, k = 3, prob=TRUE)
-pred_age_sim_3 = knn.cv(normDat[c(4, 7, 10, 13, 16, 19)], agelab, k = 3, prob=TRUE)
-pred_cap_sim_3 = knn.cv(normDat[c(4, 7, 10, 13, 16, 19)], caplab, k = 3, prob=TRUE)
 
 #Predicting age, K = 7, using all brain data
 #Predicting capacity, K = 7, using all brain data
-#Predicting age, K = 7, using just similarity data
-#Predicting capacity, K = 7, using just similarity data
+
 
 pred_age_all_7 = knn.cv(normDat[-(1:3)], agelab, k = 7, prob=TRUE)
 pred_cap_all_7 = knn.cv(normDat[-(1:3)], caplab, k = 7, prob=TRUE)
-pred_age_sim_7 = knn.cv(normDat[c(4, 7, 10, 13, 16, 19)], agelab, k = 7, prob=TRUE)
-pred_cap_sim_7 = knn.cv(normDat[c(4, 7, 10, 13, 16, 19)], caplab, k = 7, prob=TRUE)
 
-##Now break down and train by networks. K = 5 for all
 
-#ER
-pred_age_ER_5 = knn.cv(normDat[4:6], agelab, k = 5, prob=TRUE)
-pred_cap_ER_5 = knn.cv(normDat[4:6], caplab, k = 5, prob=TRUE)
-pred_cap_ER_3 = knn.cv(normDat[4:6], caplab, k = 3, prob=TRUE)
+##Now break down and train by networks. 
+
+#CRN
+pred_age_CRN_5 = knn.cv(normDat[4:6], agelab, k = 5, prob=TRUE)
+pred_cap_CRN_3 = knn.cv(normDat[4:6], caplab, k = 3, prob=TRUE)
 #DMN
 pred_age_DMN_5 = knn.cv(normDat[7:9], agelab, k = 5, prob=TRUE)
-pred_cap_DMN_5 = knn.cv(normDat[7:9], caplab, k = 5, prob=TRUE)
 pred_cap_DMN_3 = knn.cv(normDat[7:9], caplab, k = 3, prob=TRUE)
 #FPN
 pred_age_FPN_5 = knn.cv(normDat[10:12], agelab, k = 5, prob=TRUE)
-pred_cap_FPN_5 = knn.cv(normDat[10:12], caplab, k = 5, prob=TRUE)
 pred_cap_FPN_3 = knn.cv(normDat[10:12], caplab, k = 3, prob=TRUE)
 #SaN
 pred_age_SaN_5 = knn.cv(normDat[13:15], agelab, k = 5, prob=TRUE)
-pred_cap_SaN_5 = knn.cv(normDat[13:15], caplab, k = 5, prob=TRUE)
 pred_cap_SaN_3 = knn.cv(normDat[13:15], caplab, k = 3, prob=TRUE)
 #DAN
 pred_age_DAN_5 = knn.cv(normDat[16:18], agelab, k = 5, prob=TRUE)
-pred_cap_DAN_5 = knn.cv(normDat[16:18], caplab, k = 5, prob=TRUE)
 pred_cap_DAN_3 = knn.cv(normDat[16:18], agelab, k = 3, prob=TRUE)
 #VAN
 pred_age_VAN_5 = knn.cv(normDat[19:21], agelab, k = 5, prob=TRUE)
-pred_cap_VAN_5 = knn.cv(normDat[19:21], agelab, k = 5, prob=TRUE)
 pred_cap_VAN_3 = knn.cv(normDat[19:21], agelab, k = 3, prob=TRUE)
 
 ##Tabulate our results
 CrossTable(x = agelab, y = pred_age_all_5, prop.chisq=FALSE)
 CrossTable(x = caplab, y = pred_cap_all_5, prop.chisq=FALSE)
-CrossTable(x = agelab, y = pred_age_sim_5, prop.chisq=FALSE)
-CrossTable(x = caplab, y = pred_cap_sim_5, prop.chisq=FALSE)
 
 CrossTable(x = agelab, y = pred_age_all_3, prop.chisq=FALSE)
 CrossTable(x = caplab, y = pred_cap_all_3, prop.chisq=FALSE)
-CrossTable(x = agelab, y = pred_age_sim_3, prop.chisq=FALSE)
-CrossTable(x = caplab, y = pred_cap_sim_3, prop.chisq=FALSE)
 
 CrossTable(x = agelab, y = pred_age_all_7, prop.chisq=FALSE)
 CrossTable(x = caplab, y = pred_cap_all_7, prop.chisq=FALSE)
-CrossTable(x = agelab, y = pred_age_sim_7, prop.chisq=FALSE)
-CrossTable(x = caplab, y = pred_cap_sim_7, prop.chisq=FALSE)
 
 
-
-CrossTable(x = agelab, y = pred_age_ER_5, prop.chisq=FALSE)
-CrossTable(x = caplab, y = pred_cap_ER_5, prop.chisq=FALSE)
-CrossTable(x = caplab, y = pred_cap_ER_3, prop.chisq=FALSE)
+CrossTable(x = agelab, y = pred_age_CRN_5, prop.chisq=FALSE)
+CrossTable(x = caplab, y = pred_cap_CRN_3, prop.chisq=FALSE)
 
 CrossTable(x = agelab, y = pred_age_DMN_5, prop.chisq=FALSE)
-CrossTable(x = caplab, y = pred_cap_DMN_5, prop.chisq=FALSE)
 CrossTable(x = caplab, y = pred_cap_DMN_3, prop.chisq=FALSE)
 
 CrossTable(x = agelab, y = pred_age_FPN_5, prop.chisq=FALSE)
-CrossTable(x = caplab, y = pred_cap_FPN_5, prop.chisq=FALSE)
 CrossTable(x = caplab, y = pred_cap_FPN_3, prop.chisq=FALSE)
 
 CrossTable(x = agelab, y = pred_age_SaN_5, prop.chisq=FALSE)
-CrossTable(x = caplab, y = pred_cap_SaN_5, prop.chisq=FALSE)
 CrossTable(x = caplab, y = pred_cap_SaN_3, prop.chisq=FALSE)
 
 CrossTable(x = agelab, y = pred_age_DAN_5, prop.chisq=FALSE)
-CrossTable(x = caplab, y = pred_cap_DAN_5, prop.chisq=FALSE)
 CrossTable(x = caplab, y = pred_cap_DAN_3, prop.chisq=FALSE)
 
 CrossTable(x = agelab, y = pred_age_VAN_5, prop.chisq=FALSE)
-CrossTable(x = caplab, y = pred_cap_VAN_5, prop.chisq=FALSE)
 CrossTable(x = caplab, y = pred_cap_VAN_3, prop.chisq=FALSE)
-
-
-###ROC curves + AUC metrics###
-
-#library(ROCR)
-#library(pracma)
-
-#auc_func <- function(fpv, tpv){
-#  dfpv <- c(0, diff(fpv))
-#  dtpv <- c(0, diff(tpv))
-#  sum(tpv * dfpv) + sum(dtpv * dfpv)/2
-#}
-
-#knn_roc_auc <- function(model, class){
-#  prob <- attr(model, "prob")
-  
-#  if (class = "teen") {
-#    pred_knn <- prediction(prob, agelab)
-#    pred_knn <- performance(pred_knn, "tpr", "fpr")
-#    fp = attr(pred_knn, "x.values")
-#    tp = attr(pred_knn, "y.values")
-#    fp.bt = linspace(fp[[1]][1], fp[[1]][2], 5)
-#    fp.mt = linspace(fp[[1]][2], fp[[1]][3], 5)
-#    fp.tt = linspace(fp[[1]][3], fp[[1]][4], 5)
-#    fp.int = c(fp.bt, fp.mt[2:4], fp.tt)
-#    tp.bt = linspace(tp[[1]][1], tp[[1]][2], 5)
-#    tp.mt = linspace(tp[[1]][2], tp[[1]][3], 5)
-#    tp.tt = linspace(tp[[1]][3], tp[[1]][4], 5)
-#    tp.int = c(tp.bt, tp.mt[2:4], tp.tt)
-#    auc_func(fp.int, tp.int)
-      
-    #plot(pred_knn, avg="threshold", colorize=F, lwd=3)
-    
-#  } else if (class = "child") {
-#    prob <- 2*ifelse(model == "teen", 1-prob, prob) - 1
-#    pred_knn <- prediction(prob, agelab)
-#    pred_knn <- performance(pred_knn, "tpr", "fpr")
-#    fp = attr(pred_knn, "x.values")
-#    tp = attr(pred_knn, "y.values")
-#    fp.bt = linspace(fp[[1]][1], fp[[1]][2], 5)
-#    fp.mt = linspace(fp[[1]][2], fp[[1]][3], 5)
-#    fp.tt = linspace(fp[[1]][3], fp[[1]][4], 5)
-#    fp.int = c(fp.bt, fp.mt[2:4], fp.tt)
-#    tp.bt = linspace(tp[[1]][1], tp[[1]][2], 5)
-#    tp.mt = linspace(tp[[1]][2], tp[[1]][3], 5)
-#    tp.tt = linspace(tp[[1]][3], tp[[1]][4], 5)
-#    tp.int = c(tp.bt, tp.mt[2:4], tp.tt)
-#    auc_func(fp.int, tp.int)
-#  }
-  
-#}
-
-#pred_age_all_5_acc[i,] = c(CrossTable(x = agelab, y = pred_age_all_5, prop.chisq=FALSE)$prop.row[1], CrossTable(x = agelab, y = pred_age_all_5, prop.chisq=FALSE)$prop.row[4])
-#pred_cap_all_5_acc[i,] = c(CrossTable(x = caplab, y = pred_cap_all_5, prop.chisq=FALSE)$prop.row[1], CrossTable(x = caplab, y = pred_cap_all_5, prop.chisq=FALSE)$prop.row[4])
-#pred_age_sim_5_acc[i,] = c(CrossTable(x = agelab, y = pred_age_sim_5, prop.chisq=FALSE)$prop.row[1], CrossTable(x = agelab, y = pred_age_sim_5, prop.chisq=FALSE)$prop.row[4])
-#pred_cap_sim_5_acc[i,] = c(CrossTable(x = caplab, y = pred_cap_sim_5, prop.chisq=FALSE)$prop.row[1], CrossTable(x = caplab, y = pred_cap_sim_5, prop.chisq=FALSE)$prop.row[4])
-
-#pred_age_all_3_acc[i,] = c(CrossTable(x = agelab, y = pred_age_all_3, prop.chisq=FALSE)$prop.row[1], CrossTable(x = agelab, y = pred_age_all_3, prop.chisq=FALSE)$prop.row[4])
-#pred_cap_all_3_acc[i,] = c(CrossTable(x = caplab, y = pred_cap_all_3, prop.chisq=FALSE)$prop.row[1], CrossTable(x = caplab, y = pred_cap_all_3, prop.chisq=FALSE)$prop.row[4])
-#pred_age_sim_3_acc[i,] = c(CrossTable(x = agelab, y = pred_age_sim_3, prop.chisq=FALSE)$prop.row[1], CrossTable(x = agelab, y = pred_age_sim_3, prop.chisq=FALSE)$prop.row[4])
-#pred_cap_sim_3_acc[i,] = c(CrossTable(x = caplab, y = pred_cap_sim_3, prop.chisq=FALSE)$prop.row[1], CrossTable(x = caplab, y = pred_cap_sim_3, prop.chisq=FALSE)$prop.row[4])
-
-
-####Using Caret now####
-#library(caret)
-#set.seed(1234)
-
-#pred_all_acc = matrix(NA, 1000, 2)
-
-#for (i in 1:1000) {
-#indexAge <- createDataPartition(agelab, p=0.60, list=FALSE)
-#indexCap <- createDataPartition(caplab, p=0.60, list=FALSE)
-
-#normDat.Train.Age <- normDat[indexAge,]
-#normDat.Test.Age <- normDat[-indexAge,]
-#normDat.Train.Cap <- normDat[indexCap,]
-#normDat.Test.Cap <- normDat[-indexCap,]
-#normDat.Test.Age$lab = agelab[-indexAge]
-#normDat.Test.Cap$lab = caplab[-indexCap]
-
-#model_knn_age_all <- train(normDat.Train.Age[-(1:3)], agelab[indexAge], method = "knn")
-#model_knn_cap_all <- train(normDat.Train.Cap[-(1:3)], caplab[indexCap], method = "knn")
-
-#predictions_age_all <- predict(object=model_knn_age_all,normDat.Test.Age[-c(1:3,22)])
-#predictions_cap_all <- predict(object=model_knn_cap_all,normDat.Test.Cap[-c(1:3,22)])
-#table(predictions_age_all)
-#table(predictions_cap_all)
-#confusionMatrix(predictions_age_all, as.factor(normDat.Test.Age$lab))
-#confusionMatrix(predictions_cap_all, as.factor(normDat.Test.Cap$lab))
-
-#pred_all_acc[i, ] = c(confusionMatrix(predictions_age_all, as.factor(normDat.Test.Age$lab))$overall[1],
-#                          confusionMatrix(predictions_cap_all, as.factor(normDat.Test.Cap$lab))$overall[1])
-
-#}
 
 
